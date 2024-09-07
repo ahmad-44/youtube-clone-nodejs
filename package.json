@@ -1,0 +1,23 @@
+{
+  "name": "youtube_clone",
+  "version": "1.0.0",
+  "description": "A project to demonestrate backend development in node js",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/index.js"
+  },
+  "keywords": [
+    "backend",
+    "node",
+    "nodejs",
+    "javascript",
+    "youtube",
+    "api"
+  ],
+  "author": "Ahmad Ali",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
