@@ -10,8 +10,9 @@ dotenv.config({
 
 // first connect db
 connectDB()
-  //if db is connected then
   .then(() => {
+    //if db is connected then
+
     // add event listener to catch any error which can come while listening the app
     app.on("error", (error) => {
       console.log("ERROR::", error);

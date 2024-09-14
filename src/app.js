@@ -30,4 +30,13 @@ app.use(express.static("public"));
 // use cookies parser as well. it is used to CRUD on browser cookies
 app.use(cookieParser());
 
+// routes import
+import userRouter from "./routes/user.routes.js";
+
+// routes declaration
+// we don't use app.get('/', cb) here. Instead we are bringing router from outside. It will be done with help of middleware
+app.use("/api/v1/users", userRouter);
+
+//http://localhost:8000/api/v1/users/register
+//http://localhost:8000/api/v1/users/login
 export { app };
