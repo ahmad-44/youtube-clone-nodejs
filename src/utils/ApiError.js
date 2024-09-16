@@ -22,4 +22,4 @@ class ApiError extends Error {
   } //constructor ends here
 }
 
-export { ApiError };
+export default { ApiError };

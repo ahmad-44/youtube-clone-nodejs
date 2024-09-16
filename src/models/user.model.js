@@ -54,7 +54,7 @@ userSchema.pre("save", async function (next) {
   // make sure it only runs when there is a change in passowrd. not other fields
   if (!this.isModified("password")) return next();
   // don't use arrow function because we have to use 'this'
-  this.password = bcrypt.hash(this.password, 10);
+  this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
