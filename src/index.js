@@ -5,7 +5,7 @@ import { app } from "./app.js";
 
 // for proper working of .env, also modify scripts > dev for it
 dotenv.config({
-  path: "./env",
+  path: "./.env",
 });
 
 // first connect db

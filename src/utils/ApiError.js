@@ -17,9 +17,9 @@ class ApiError extends Error {
     if (stack) {
       this.stack = stack;
     } else {
-      Error.captureStackTrac(this, this.constructor);
+      Error.captureStackTrace(this, this.constructor);
     }
   } //constructor ends here
 }
 
-export default { ApiError };
+export default ApiError;

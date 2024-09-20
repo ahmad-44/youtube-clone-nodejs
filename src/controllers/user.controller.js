@@ -15,24 +15,24 @@ const registerUser = asyncHandler(async (req, res) => {
   // return response
 
   // Step 1 - get user details from frontend
-  const { fullname, email, username, password } = req.body;
+  const { fullName, email, username, password } = req.body;
   console.log("email: ", email);
 
   // Step 2 - validation - specailly non empty
   //beginners use this way of validation
-  // if (fullname === "") {
-  //   throw new ApiError(400, "Fullname is required");
+  // if (fullName === "") {
+  //   throw new ApiError(400, "fullName is required");
   // }
 
   // pros use this
   if (
-    [fullname, email, username, password].some((field) => field?.trim() === "")
+    [fullName, email, username, password].some((field) => field?.trim() === "")
   ) {
     throw new ApiError(400, "All fields are required!");
   }
 
   // Step 3 - check if user already exists: username, email
-  const existedUser = User.findOne({
+  const existedUser = await User.findOne({
     $or: [{ username }, { email }],
   });
   if (existedUser) {
@@ -42,7 +42,13 @@ const registerUser = asyncHandler(async (req, res) => {
   //STEP 4 -  check for images, check for avatar
   // req.files has files coming from Multer usage in user.routes.js
   const avatarLocalPath = req.files?.avatar[0]?.path;
-  const coverImageLocalPath = req.files?.coverImage[0]?.path;
+  // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+
+
+  let coverImageLocalPath;
+  if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
+    coverImageLocalPath = req.files.coverImage[0].path
+  }
 
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar file is required!");
@@ -58,7 +64,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   // STEP 6 - creaet user object, create entry in db
   const user = await User.create({
-    fullname,
+    fullName,
     avatar: avatar.url,
     coverImage: coverImage?.url || "",
     email,
