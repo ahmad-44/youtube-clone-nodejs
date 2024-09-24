@@ -68,7 +68,7 @@ userSchema.methods.generateAccessToken = async function () {
     {
       _id: this._id, //key is payload name, value is coming from database
       email: this.email,
-      uername: this.username,
+      username: this.username,
       fullname: this.fullName,
     },
     process.env.ACCESS_TOKEN_SECRET,

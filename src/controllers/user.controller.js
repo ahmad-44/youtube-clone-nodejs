@@ -3,17 +3,34 @@ import ApiError from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadOncloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-const registerUser = asyncHandler(async (req, res) => {
-  // get user details from frontend
-  // validation - specailly non empty
-  // check if user already exists: username, email
-  // check for images, check for avatar
-  // upload them to cloudinary, avatar
-  // creaet user object, create entry in db
-  // remove password and refresh token from response
-  // check for user creation
-  // return response
+import { application } from "express";
 
+const generateAccessAndRefreshTokens = async (userId) => {
+  try {
+    //find user
+    const user = await User.findById(userId);
+
+    //craete tokens
+    const accessToken = await user.generateAccessToken();
+    const refreshToken = await user.generateRefreshToken();
+
+    //save refresh token in DB
+    // This assignment prepares the user object to be saved back to the database. When await user.save({validateBeforeSave: false}) is called, it will persist the updated refreshToken property along with any other properties of the user.
+    // This line updates the user object in memory with the new refreshToken. At this point, the change exists only in the application's runtime context.
+    user.refreshToken = refreshToken;
+
+    //save user
+    await user.save({ validateBeforeSave: false }); //it won't check passwords or any other validations and directly save. because we know what we are doing.
+
+    return { accessToken, refreshToken };
+  } catch (error) {
+    throw new ApiError(
+      500,
+      "Something went wrong while generating referesh and access tokem"
+    );
+  }
+};
+const registerUser = asyncHandler(async (req, res) => {
   // Step 1 - get user details from frontend
   const { fullName, email, username, password } = req.body;
   console.log("email: ", email);
@@ -44,10 +61,13 @@ const registerUser = asyncHandler(async (req, res) => {
   const avatarLocalPath = req.files?.avatar[0]?.path;
   // const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
-
   let coverImageLocalPath;
-  if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
-    coverImageLocalPath = req.files.coverImage[0].path
+  if (
+    req.files &&
+    Array.isArray(req.files.coverImage) &&
+    req.files.coverImage.length > 0
+  ) {
+    coverImageLocalPath = req.files.coverImage[0].path;
   }
 
   if (!avatarLocalPath) {
@@ -90,4 +110,98 @@ const registerUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, createdUser, "User Registered Successfully"));
 });
 
-export { registerUser };
+const loginUser = asyncHandler(async (req, res) => {
+  // req body -> data
+  // username or email
+  // find the user
+  // password check
+  // access refresh token
+  // send cookie
+
+  // STEP 1, req body -> data
+  const { email, username, password } = req.body;
+
+  console.log(email);
+  // STEP: 2, username or email
+  if (!username && !email) {
+    throw new ApiError(400, "Username or Email is required");
+  }
+
+  // STEP: 3, find the user
+  // here,  'or' is an operator of mongoDB. It will find user either based on email or username, first instance of the found value will be returned
+  const user = await User.findOne({
+    $or: [{ username }, { email }],
+  });
+
+  if (!user) {
+    throw new ApiError(404, "User does not exist");
+  }
+
+  // STEP: 4 password check
+
+  // user is the user we've created above by finding through DB. we can use it to call the model functions we have created. User is the one which can be accessed from Mongoose schema of mongo DB
+  const isPasswordValid = await user.isPasswordCorrect(password);
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Invalid user crednetials");
+  }
+
+  // STEP: 5 access  tokens
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+    user._id
+  );
+
+  // STEP: 6 send cookie
+  // we will do another db cookie/ we can't dierctly call user object which is fetched above because at this snapshot, user doesn't have tokens
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+
+  // cookie preparation
+  const options = {
+    httpOnly: true, //it won't be writable on client side. but only on server side
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: loggedInUser,
+          accessToken,
+          refreshToken,
+        },
+        "User logged in successfully"
+      )
+    ); //sending json here is not a good practice because we are already sending it through cookies. but maybe the user wants to save the cookies or want to use in mobile etc. so we send it through json as well.
+});
+
+const logoutUser = asyncHandler(async (req, res) => {
+  // req now has access to user object. this user object is attached to req by verifyJWT middleware
+  await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $unset: {
+        refreshToken: 1,
+      },
+    },
+    {
+      new: true, //it will return new updated value in response
+    }
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User logged out successfully"));
+});
+export { registerUser, loginUser, logoutUser };
