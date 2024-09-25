@@ -285,7 +285,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
     throw new ApiError(400, "All fields are required");
   }
 
-  const user = User.findOneAndUpdate(
+  const user = await User.findOneAndUpdate(
     req.user?._id,
     {
       $set: {
@@ -308,6 +308,8 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar File is Missing");
   }
+
+  // Todo, Delete Old Image
   const avatar = await uploadOncloudinary(avatarLocalPath);
   if (!avatar.url) {
     throw new ApiError(400, "Error while uploading Avatar on Cloudinary");
@@ -331,6 +333,8 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
   if (!coverImageLocalPath) {
     throw new ApiError(400, "Cover Image File is Missing");
   }
+
+  // Todo, Delete Old Image
   const coverImage = await uploadOncloudinary(coverImageLocalPath);
   if (!coverImage.url) {
     throw new ApiError(400, "Error while uploading Cover Image on Cloudinary");
@@ -348,6 +352,77 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, user, "Cover Image Updated Successfully"));
 });
+
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+  if (!username?.trim()) {
+    throw new ApiError(400, "username is missing");
+  }
+
+  const channel = await User.aggregate([
+    {
+      $match: {
+        username: username?.toLowerCase(),
+      }, // one user is found so far in this pipeline
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers",
+      }, //this pipeline fetches subscribers
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo",
+      }, //this pipeline fetches subscriber to
+    },
+    {
+      $addFields: {
+        subscribersCount: {
+          $size: "$subscribers", // add $ sign becuase it is a field now
+        },
+        ChannelsSubscribedToCount: {
+          $size: "$subscribedTo",
+        },
+        isSubscribed: {
+          $cond: {
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+            then: true,
+            else: false,
+          },
+        },
+      }, //in this pipeline, we will calculate total subscribers and subscribed and find if the person quering is also the subscriber of channel he is visiting
+    },
+    {
+      // it means projection. gives out only the values we want it to give
+      $project: {
+        fullName: 1, // 1 means true
+        username: 1,
+        subscribersCount: 1,
+        ChannelsSubscribedToCount: 1,
+        isSubscribed: 1,
+        avatar: 1,
+        coverImage: 1,
+        email: 1,
+      },
+    },
+  ]);
+  console.log({ channel });
+
+  if (!channel?.length) {
+    throw new ApiError(404, "Channel does not exist");
+  }
+
+  return res
+    .status(200)
+    .json(ApiResponse(200, channel[0], "User channel fetched successfully"));
+});
+
 export {
   registerUser,
   loginUser,
@@ -358,4 +433,5 @@ export {
   updateAccountDetails,
   updateUserAvatar,
   updateUserCoverImage,
+  getUserChannelProfile,
 };
