@@ -37,8 +37,8 @@ router.route("/login").post(loginUser);
 // secured routes
 router.route("/logout").post(verifyJWT, logoutUser); //verifyJWT is a middleware
 router.route("/refresh-token").post(refreshAccessToken);
-router.route("change-password").post(verifyJWT, changeCurrentPassword);
-router.route("/curren-user").get(verifyJWT, getCurrentUser);
+router.route("/change-password").post(verifyJWT, changeCurrentPassword);
+router.route("/current-user").get(verifyJWT, getCurrentUser);
 router.route("/update-account").patch(verifyJWT, updateAccountDetails);
 router
   .route("/avatar")

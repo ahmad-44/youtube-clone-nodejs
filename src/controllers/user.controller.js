@@ -35,7 +35,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
 const registerUser = asyncHandler(async (req, res) => {
   // Step 1 - get user details from frontend
   const { fullName, email, username, password } = req.body;
-  console.log("email: ", email);
+  // console.log("email: ", email);
 
   // Step 2 - validation - specailly non empty
   //beginners use this way of validation
@@ -123,7 +123,7 @@ const loginUser = asyncHandler(async (req, res) => {
   // STEP 1, req body -> data
   const { email, username, password } = req.body;
 
-  console.log(email);
+  // console.log(email);
   // STEP: 2, username or email
   if (!username && !email) {
     throw new ApiError(400, "Username or Email is required");
@@ -259,7 +259,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 
   const user = await User.findById(req.user?._id); // req has user attached to it through middleware
 
-  const isPassowrdCorrect = await user.isPassowrdCorrect(oldPassword);
+  const isPassowrdCorrect = await user.isPasswordCorrect(oldPassword);
 
   if (!isPassowrdCorrect) {
     throw new ApiError(400, "Invalid Old Password");
@@ -413,7 +413,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
       },
     },
   ]);
-  console.log({ channel });
+  // console.log({ channel });
 
   if (!channel?.length) {
     throw new ApiError(404, "Channel does not exist");
@@ -421,7 +421,9 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(ApiResponse(200, channel[0], "User channel fetched successfully"));
+    .json(
+      new ApiResponse(200, channel[0], "User channel fetched successfully")
+    );
 });
 
 const getWatchHistory = asyncHandler(async (req, res) => {
